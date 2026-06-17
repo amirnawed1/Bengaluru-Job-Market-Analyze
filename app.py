@@ -68,12 +68,18 @@ with col2:
     st.metric("Average Salary", f"₹{avg_salary:.1f} LPA")
 
 with col3:
-    top_company = filtered_df["Company"].value_counts().index[0]
+    if not filtered_df.empty:
+        top_company = filtered_df["Company"].value_counts().index[0]
+    else:
+        top_company = "No data"
     st.metric("Top Hiring Company", top_company)
 
 with col4:
-    fresher_count = len(filtered_df[filtered_df["Experience"].str.contains("0-0|0-1")])
-    st.metric("Fresher Jobs", fresher_count)
+    if not filtered_df.empty:
+        fresher_count = len(filtered_df[filtered_df["Experience"].str.contains("0-0|0-1")])
+    else:
+        fresher_count = 0
+    st.metric("Fresher Jobs", fresher_count
 
 st.markdown("---")
 
