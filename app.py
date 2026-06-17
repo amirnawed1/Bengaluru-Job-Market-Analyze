@@ -79,7 +79,7 @@ with col4:
         fresher_count = len(filtered_df[filtered_df["Experience"].str.contains("0-0|0-1")])
     else:
         fresher_count = 0
-    st.metric("Fresher Jobs", fresher_count
+    st.metric("Fresher Jobs", fresher_count)
 
 st.markdown("---")
 
