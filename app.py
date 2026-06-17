@@ -64,11 +64,14 @@ with col1:
     st.metric("Total Jobs", len(filtered_df))
 
 with col2:
-    avg_salary = filtered_df["Salary (LPA)"].mean()
-    st.metric("Average Salary", f"₹{avg_salary:.1f} LPA")
+    if not filtered_df.empty:
+        avg_salary = filtered_df["Salary (LPA)"].mean()
+        st.metric("Average Salary", f"₹{avg_salary:.1f} LPA")
+    else:
+        st.metric("Average Salary", "N/A")
 
 with col3:
-    if not filtered_df.empty:
+    if not filtered_df.empty and len(filtered_df["Company"].value_counts()) > 0:
         top_company = filtered_df["Company"].value_counts().index[0]
     else:
         top_company = "No data"
@@ -92,20 +95,26 @@ with col1:
     # Top 10 Skills
     st.markdown("### 🔥 Most Demanded Skills")
     
-    all_skills = []
-    for skills in filtered_df["Skills"]:
-        skill_list = [s.strip() for s in skills.split(",")]
-        all_skills.extend(skill_list)
-    
-    skill_counts = Counter(all_skills)
-    top_skills = pd.DataFrame(skill_counts.most_common(10), 
-                               columns=["Skill", "Count"])
-    
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.barplot(data=top_skills, y="Skill", x="Count", palette="viridis", ax=ax)
-    ax.set_xlabel("Number of Job Listings")
-    ax.set_title("Top 10 Skills Employers Want")
-    st.pyplot(fig)
+    if not filtered_df.empty:
+        all_skills = []
+        for skills in filtered_df["Skills"]:
+            skill_list = [s.strip() for s in skills.split(",")]
+            all_skills.extend(skill_list)
+        
+        skill_counts = Counter(all_skills)
+        top_skills = pd.DataFrame(skill_counts.most_common(10), 
+                                   columns=["Skill", "Count"])
+        
+        if not top_skills.empty:
+            fig, ax = plt.subplots(figsize=(8, 5))
+            sns.barplot(data=top_skills, y="Skill", x="Count", palette="viridis", ax=ax)
+            ax.set_xlabel("Number of Job Listings")
+            ax.set_title("Top 10 Skills Employers Want")
+            st.pyplot(fig)
+        else:
+            st.info("No skills data to display.")
+    else:
+        st.info("No jobs match the current filters.")
 
 with col2:
     # Top Hiring Companies
@@ -121,7 +130,7 @@ with col2:
             ax.invert_yaxis()
             st.pyplot(fig)
         else:
-            st.info("No company data to display for the selected filters.")
+            st.info("No company data to display.")
     else:
         st.info("No jobs match the current filters.")
 
@@ -134,46 +143,60 @@ col1, col2 = st.columns(2)
 with col1:
     # Salary by Job Type
     st.markdown("### Salary Distribution by Job Type")
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.boxplot(data=filtered_df, x="Job Type", y="Salary (LPA)", palette="Set2", ax=ax)
-    ax.set_title("Salary Range: Full-time vs Internship")
-    st.pyplot(fig)
+    if not filtered_df.empty and len(filtered_df["Job Type"].unique()) > 0:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.boxplot(data=filtered_df, x="Job Type", y="Salary (LPA)", palette="Set2", ax=ax)
+        ax.set_title("Salary Range: Full-time vs Internship")
+        st.pyplot(fig)
+    else:
+        st.info("Not enough data for salary distribution.")
 
 with col2:
     # Average Salary by Experience
     st.markdown("### Average Salary by Experience Level")
     
-    def categorize_exp(exp):
-        if "0-0" in exp or "0-1" in exp:
-            return "Fresher"
-        elif "0-2" in exp or "0-3" in exp:
-            return "Entry Level"
+    if not filtered_df.empty:
+        def categorize_exp(exp):
+            if "0-0" in exp or "0-1" in exp:
+                return "Fresher"
+            elif "0-2" in exp or "0-3" in exp:
+                return "Entry Level"
+            else:
+                return "Experienced"
+        
+        filtered_df["Exp Category"] = filtered_df["Experience"].apply(categorize_exp)
+        avg_salary_by_exp = filtered_df.groupby("Exp Category")["Salary (LPA)"].mean()
+        
+        if not avg_salary_by_exp.empty:
+            fig, ax = plt.subplots(figsize=(8, 5))
+            avg_salary_by_exp.plot(kind="bar", color=["#FF6B6B", "#4ECDC4", "#45B7D1"], ax=ax)
+            ax.set_ylabel("Average Salary (LPA)")
+            ax.set_title("Salary by Experience Category")
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+            st.pyplot(fig)
         else:
-            return "Experienced"
-    
-    filtered_df["Exp Category"] = filtered_df["Experience"].apply(categorize_exp)
-    avg_salary_by_exp = filtered_df.groupby("Exp Category")["Salary (LPA)"].mean()
-    
-    fig, ax = plt.subplots(figsize=(8, 5))
-    avg_salary_by_exp.plot(kind="bar", color=["#FF6B6B", "#4ECDC4", "#45B7D1"], ax=ax)
-    ax.set_ylabel("Average Salary (LPA)")
-    ax.set_title("Salary by Experience Category")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
-    st.pyplot(fig)
+            st.info("Not enough data to show salary by experience.")
+    else:
+        st.info("No jobs match the current filters.")
 
 # ========== JOB TITLES ==========
 st.markdown("---")
 st.subheader("📋 Most Common Job Titles")
 
-job_titles = filtered_df["Job Title"].value_counts().head(10)
-
-fig, ax = plt.subplots(figsize=(10, 5))
-job_titles.plot(kind="bar", color="mediumseagreen", ax=ax)
-ax.set_xlabel("Job Title")
-ax.set_ylabel("Number of Listings")
-ax.set_title("Top 10 Job Titles in Demand")
-ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-st.pyplot(fig)
+if not filtered_df.empty:
+    job_titles = filtered_df["Job Title"].value_counts().head(10)
+    if not job_titles.empty:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        job_titles.plot(kind="bar", color="mediumseagreen", ax=ax)
+        ax.set_xlabel("Job Title")
+        ax.set_ylabel("Number of Listings")
+        ax.set_title("Top 10 Job Titles in Demand")
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+        st.pyplot(fig)
+    else:
+        st.info("No job titles to display.")
+else:
+    st.info("No jobs match the current filters.")
 
 # ========== RAW DATA ==========
 st.markdown("---")
@@ -182,6 +205,7 @@ st.subheader("📁 View Raw Data")
 if st.checkbox("Show job listings"):
     st.dataframe(filtered_df[["Job Title", "Company", "Skills", "Salary (LPA)", "Experience"]])
     
+    # Download button
     csv = filtered_df.to_csv(index=False)
     st.download_button(
         label="Download Filtered Data as CSV",
@@ -194,20 +218,26 @@ if st.checkbox("Show job listings"):
 st.markdown("---")
 st.subheader("💡 Key Insights")
 
-sql_count = sum(1 for skills in filtered_df["Skills"] if "SQL" in skills)
-python_count = sum(1 for skills in filtered_df["Skills"] if "Python" in skills)
-powerbi_count = sum(1 for skills in filtered_df["Skills"] if "Power BI" in skills)
-excel_count = sum(1 for skills in filtered_df["Skills"] if "Excel" in skills)
+if not filtered_df.empty:
+    sql_count = sum(1 for skills in filtered_df["Skills"] if "SQL" in skills)
+    python_count = sum(1 for skills in filtered_df["Skills"] if "Python" in skills)
+    powerbi_count = sum(1 for skills in filtered_df["Skills"] if "Power BI" in skills)
+    excel_count = sum(1 for skills in filtered_df["Skills"] if "Excel" in skills)
 
-insight1 = f"• **SQL is king:** {sql_count}/{len(filtered_df)} jobs ({sql_count*100//len(filtered_df)}%) require SQL — it's the #1 skill to learn."
-insight2 = f"• **Python is close behind:** {python_count}/{len(filtered_df)} jobs require Python ({python_count*100//len(filtered_df)}%)."
-insight3 = f"• **Power BI & Excel matter:** {powerbi_count} jobs need Power BI, {excel_count} need Excel — don't skip these basics."
-insight4 = f"• **Average fresher salary:** ₹{filtered_df[filtered_df['Experience'].str.contains('0-0|0-1')]['Salary (LPA)'].mean():.1f} LPA"
-
-st.markdown(insight1)
-st.markdown(insight2)
-st.markdown(insight3)
-st.markdown(insight4)
+    if len(filtered_df) > 0:
+        st.markdown(f"• **SQL is king:** {sql_count}/{len(filtered_df)} jobs ({sql_count*100//len(filtered_df)}%) require SQL.")
+        st.markdown(f"• **Python is close behind:** {python_count}/{len(filtered_df)} jobs require Python ({python_count*100//len(filtered_df)}%).")
+        st.markdown(f"• **Power BI & Excel matter:** {powerbi_count} jobs need Power BI, {excel_count} need Excel.")
+        
+        fresher_salaries = filtered_df[filtered_df['Experience'].str.contains('0-0|0-1')]['Salary (LPA)']
+        if not fresher_salaries.empty:
+            st.markdown(f"• **Average fresher salary:** ₹{fresher_salaries.mean():.1f} LPA")
+        else:
+            st.markdown("• **Average fresher salary:** No fresher data available.")
+    else:
+        st.info("No data to generate insights.")
+else:
+    st.info("No jobs match the current filters. Please adjust your filters.")
 
 st.markdown("---")
 st.markdown("### 🚀 Made by Amir Nawed | Data Analyst Portfolio Project")
