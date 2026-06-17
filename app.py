@@ -111,14 +111,19 @@ with col2:
     # Top Hiring Companies
     st.markdown("### 🏢 Top Hiring Companies")
     
-    top_companies = filtered_df["Company"].value_counts().head(10)
-    
-    fig, ax = plt.subplots(figsize=(8, 5))
-    top_companies.plot(kind="barh", color="coral", ax=ax)
-    ax.set_xlabel("Number of Openings")
-    ax.set_title("Companies with Most Job Openings")
-    ax.invert_yaxis()
-    st.pyplot(fig)
+    if not filtered_df.empty:
+        top_companies = filtered_df["Company"].value_counts().head(10)
+        if not top_companies.empty:
+            fig, ax = plt.subplots(figsize=(8, 5))
+            top_companies.plot(kind="barh", color="coral", ax=ax)
+            ax.set_xlabel("Number of Openings")
+            ax.set_title("Companies with Most Job Openings")
+            ax.invert_yaxis()
+            st.pyplot(fig)
+        else:
+            st.info("No company data to display for the selected filters.")
+    else:
+        st.info("No jobs match the current filters.")
 
 # ========== SALARY ANALYSIS ==========
 st.markdown("---")
